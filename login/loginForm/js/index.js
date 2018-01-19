@@ -1,18 +1,21 @@
 var working = false;
 var result = {};
-$('.login').on('submit', function(e) {
+$('.login').on('submit', function (e) {
   e.preventDefault();
   if (working) return;
   working = true;
   var name = document.getElementById("username").value;
   var passwd = document.getElementById("password").value;
-  var data = {name:name,password:passwd};
+  var data = {
+    name: name,
+    password: passwd
+  };
   var $this = $(this);
   var $button = $('#loginButton')
   $.ajax({
     type: 'POST',
-    url: 'http://92683f242b324c1db25d6b8241d564c6-cn-shanghai.alicloudapi.com/login',
-    data: data, 
+    url: '{logAuthApiUrl}',
+    data: data,
     beforeSend: function () {
       $state = $this.find('button > .state');
       $this.addClass('loading');
@@ -29,7 +32,7 @@ $('.login').on('submit', function(e) {
         window.location.href = url;
       } else {
         // 密码错误
-        setTimeout(function() {
+        setTimeout(function () {
           console.log('invalid username or password');
           $this.addClass('ok');
           $state.html('Invalid username or password!');
@@ -43,7 +46,7 @@ $('.login').on('submit', function(e) {
       }
     },
     error: function (...args) {
-      setTimeout(function() {
+      setTimeout(function () {
         console.log('request error');
         $this.addClass('ok');
         $state.html('request error');

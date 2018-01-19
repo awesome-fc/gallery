@@ -4,6 +4,8 @@ var fs = require('fs');
 var path = require('path');
 var md5 = require('js-md5');
 
+var configFile = process.env['FC_FUNC_CODE_PATH'] + '/config.json';
+var configBody = JSON.parse(fs.readFileSync(configFile).toString());
 var client;
 var option = { expires: 28800 };
 var sourceDir = '/source/';
@@ -13,11 +15,14 @@ var fullsDir = 'fulls/';
 var thumbsDir = 'thumbs/';
 var homepageSiteDir = 'homepageSite/';
 var albumSiteDir = 'albumSite/';
-var homepageDir = 'homepage';
-var albumDir = 'album';
+var homepageDir = 'site-builder-cdn/homepage';
+var albumDir = 'site-builder-cdn/album';
 var webPageName = 'index.html';
-var domainName = 'http://photo-gallery.aliyun.com';
-var key = 'awesomeFC';
+var domainName = configBody.domainName;
+var key = configBody.key;
+var loginCDNUrl = configBody.loginCDNUrl;
+var bucketName = configBody.bucketName;
+var ossRegion = configBody.ossRegion;
 //Get all files under a certain directory
 var walk = function (dir, done) {
     try {
@@ -88,20 +93,20 @@ function getAlbums(data) {
     };
 }
 
-//getURL by CDN
+//CDN方式获取链接
 function getUrl(fileName) {
-     // expire 8h
-     var timeStamp = parseInt(new Date().getTime()/1000) + 28800;
-     var sstring = fileName + '-' + timeStamp + '-' + '0-0-' + key;
-     var authValue = md5(encodeURI(sstring));
-     console.log('authValue',authValue);
-     var url = domainName + fileName + '?auth_key=' + timeStamp + '-0-0-' + authValue;   
-     return url;
+    // expire 8h
+    var timeStamp = parseInt(new Date().getTime()/1000) + 28800;
+    var sstring = fileName + '-' + timeStamp + '-' + '0-0-' + key;
+    var authValue = md5(encodeURI(sstring));
+    console.log('authValue',authValue);
+    var url = domainName + fileName + '?auth_key=' + timeStamp + '-0-0-' + authValue;   
+    return url;
 }
 
 function uploadHomepageSite(albums, pictures) {
     return new Promise(function (resolve, reject) {
-        var dir = 'homepage';
+        var dir = homepageDir;
         var done = function (err, files) {
             var array = new Array();
             if (err) {
@@ -117,7 +122,7 @@ function uploadHomepageSite(albums, pictures) {
                         var imgUrl = getUrl(processedDir + thumbsDir + pictures[i][0]);
                         picturesHTML += "\t\t\t\t\t\t<article class=\"thumb\">\n" + "\t\t\t\t\t\t\t<a href=\"" + linkUrl + "\" class=\"image\"><img src=\"" + imgUrl + "\" alt=\"\" /></a>\n" + "\t\t\t\t\t\t\t<h2>" + albumTitle + "</h2>\n" + "\t\t\t\t\t\t</article>\n";
                     }
-                    body = body.toString().replace(/\{title\}/g, 'Photo Gallery Based On Function Compute').replace(/\{pictures\}/g, picturesHTML);
+                    body = body.toString().replace(/\{title\}/g, 'Photo Gallery Based On Function Compute').replace(/\{pictures\}/g, picturesHTML).replace(/\{bucketName\}/g,bucketName).replace(/\{ossRegion\}/g,ossRegion);
                     var tmpFile = '/tmp/homepageSiteIndex.html';
                     var newKey = webDir + homepageSiteDir + webPageName;
                     fs.writeFileSync(tmpFile, body);
@@ -132,6 +137,9 @@ function uploadHomepageSite(albums, pictures) {
                         });
                     }));
                 } else if (path.basename(f) !== '.DS_Store') {
+                    if (path.basename(f) == 'isExpire.js') {
+                        body = body.toString().replace(/\{loginCDNUrl\}/g, loginCDNUrl);
+                    }
                     var fName = path.relative(dir, f).split("/").join('');
                     var tmpFile = '/tmp/' + 'homeSite' + fName;
                     var newKey = webDir + homepageSiteDir + path.relative(dir, f);
@@ -182,10 +190,10 @@ function uploadAlbumSite(title, pictures) {
                         var imgUrl = getUrl(processedDir + thumbsDir + pictures[i]);
                         var bigImgUrl = getUrl(sourceDir + pictures[i]);
                         var homePageUrl = getUrl(webDir + homepageSiteDir + webPageName);
-                        picturesHTML += "\t\t\t\t\t\t<article>\n" + "\t\t\t\t\t\t\t<a class=\"thumbnail\" href=\"" + linkUrl + "\" data-position=\"center\"><img class=\"lazy\" src=\"assets/css/images/placeholder.png\" data-original=\"" + imgUrl + "\" width=\"360\" height=\"225\"/></a>\n" + "<p><a href=\"" + bigImgUrl + "\" download>High Resolution Download</a></p>\n" + "\t\t\t\t\t\t</article>";
+                        picturesHTML += "\t\t\t\t\t\t<article>\n" + "\t\t\t\t\t\t\t<a class=\"thumbnail\" href=\"" + linkUrl + "\" data-position=\"center\"><img class=\"lazy\" src=\"http://photo-gallery-cici.oss-cn-shanghai.aliyuncs.com/webCDN/albumSite/Album1/assets/css/images/placeholder.png\" data-original=\"" + imgUrl + "\" width=\"360\" height=\"225\"/></a>\n" + "<p><a href=\"" + bigImgUrl + "\" download>High Resolution Download</a></p>\n" + "\t\t\t\t\t\t</article>";
                     }
                     var backToHomePageHTML = "<a href=\"" + homePageUrl + "\">Back to albums.</a>";
-                    body = body.toString().replace(/\{title\}/g, renderedTitle).replace(/\{comment1\}/g, comment1).replace(/\{comment2\}/g, comment2).replace(/\{backToHomePage\}/g, backToHomePageHTML).replace(/\{pictures\}/g, picturesHTML);
+                    body = body.toString().replace(/\{title\}/g, renderedTitle).replace(/\{comment1\}/g, comment1).replace(/\{comment2\}/g, comment2).replace(/\{backToHomePage\}/g, backToHomePageHTML).replace(/\{pictures\}/g, picturesHTML).replace(/\{bucketName\}/g,bucketName).replace(/\{ossRegion\}/g,ossRegion);
                     var tmpFile = '/tmp/' + title + 'index.html';
                     var newKey = webDir + albumSiteDir + title + '/' + webPageName;
                     fs.writeFileSync(tmpFile, body);
@@ -201,6 +209,9 @@ function uploadAlbumSite(title, pictures) {
                     }));
                 }
                 else if (path.basename(f) !== '.DS_Store') {
+                    if (path.basename(f) == 'isExpire.js') {
+                        body = body.toString().replace(/\{loginCDNUrl\}/g, loginCDNUrl);
+                    }
                     var fName = path.relative(dir, f).split('/').join('');
                     var tmpFile = '/tmp/' + fName;
                     // console.log('tmpFileName: ', tmpFile);
@@ -264,9 +275,6 @@ exports.build = function (eventBuf, ctx, callback) {
     console.log('Received event:', eventBuf.toString());
     var event = JSON.parse(eventBuf);
     var ossEvent = event.events[0];
-    // Required by OSS sdk: OSS region is prefixed with "oss-", e.g. "oss-cn-shanghai"
-    var ossRegion = "oss-" + ossEvent.region;
-    var bucketName = ossEvent.oss.bucket.name;
     // Create oss client.
     client = new oss({
         region: ossRegion,

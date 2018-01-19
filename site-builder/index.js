@@ -3,8 +3,15 @@ var oss = require('ali-oss').Wrapper;
 var fs = require('fs');
 var path = require('path');
 
+var configFile = process.env['FC_FUNC_CODE_PATH'] + '/config.json';
+var configBody = JSON.parse(fs.readFileSync(configFile).toString());
+var loginUrl = configBody.loginUrl;
+var ossRegion = configBody.ossRegion;
+var bucketName = configBody.bucketName;
 var client;
-var option = { expires: 28800 };
+var option = {
+    expires: 28800
+};
 var sourceDir = 'source/';
 var processedDir = 'processed/';
 var webDir = 'web/';
@@ -12,10 +19,10 @@ var fullsDir = 'fulls/';
 var thumbsDir = 'thumbs/';
 var homepageSiteDir = 'homepageSite/';
 var albumSiteDir = 'albumSite/';
-var homepageDir = 'homepage';
-var albumDir = 'album';
+var homepageDir = 'site-builder/homepage';
+var albumDir = 'site-builder/album';
 var webPageName = 'index.html';
-
+var triggerDir = 'processed/thumbs/';
 //Get all files under a certain directory
 var walk = function (dir, done) {
     try {
@@ -47,7 +54,7 @@ var walk = function (dir, done) {
 };
 
 function stripPrefix(object) {
-    return object.name.replace('processed/thumbs/', '');
+    return object.name.replace(triggerDir, '');
 }
 
 function folderName(path) {
@@ -88,7 +95,7 @@ function getAlbums(data) {
 
 function uploadHomepageSite(albums, pictures) {
     return new Promise(function (resolve, reject) {
-        var dir = 'homepage';
+        var dir = homepageDir;
         var done = function (err, files) {
             var array = new Array();
             if (err) {
@@ -104,7 +111,7 @@ function uploadHomepageSite(albums, pictures) {
                         var imgUrl = client.signatureUrl(processedDir + thumbsDir + pictures[i][0], option);
                         picturesHTML += "\t\t\t\t\t\t<article class=\"thumb\">\n" + "\t\t\t\t\t\t\t<a href=\"" + linkUrl + "\" class=\"image\"><img src=\"" + imgUrl + "\" alt=\"\" /></a>\n" + "\t\t\t\t\t\t\t<h2>" + albumTitle + "</h2>\n" + "\t\t\t\t\t\t</article>\n";
                     }
-                    body = body.toString().replace(/\{title\}/g, 'Photo Gallery Based On Function Compute').replace(/\{pictures\}/g, picturesHTML);
+                    body = body.toString().replace(/\{title\}/g, 'Photo Gallery Based On Function Compute').replace(/\{pictures\}/g, picturesHTML).replace(/\{bucketName\}/g,bucketName).replace(/\{ossRegion\}/g,ossRegion);
                     var tmpFile = '/tmp/homepageSiteIndex.html';
                     var newKey = webDir + homepageSiteDir + webPageName;
                     fs.writeFileSync(tmpFile, body);
@@ -119,6 +126,9 @@ function uploadHomepageSite(albums, pictures) {
                         });
                     }));
                 } else if (path.basename(f) !== '.DS_Store') {
+                    if (path.basename(f) == 'isExpire.js') {
+                        body = body.toString().replace(/\{loginUrl\}/g, loginUrl);
+                    }
                     var fName = path.relative(dir, f).split("/").join('');
                     var tmpFile = '/tmp/' + 'homeSite' + fName;
                     var newKey = webDir + homepageSiteDir + path.relative(dir, f);
@@ -172,7 +182,7 @@ function uploadAlbumSite(title, pictures) {
                         picturesHTML += "\t\t\t\t\t\t<article>\n" + "\t\t\t\t\t\t\t<a class=\"thumbnail\" href=\"" + linkUrl + "\" data-position=\"center\"><img class=\"lazy\" src=\"assets/css/images/placeholder.png\" data-original=\"" + imgUrl + "\" width=\"360\" height=\"225\"/></a>\n" + "<p><a href=\"" + bigImgUrl + "\" download>High Resolution Download</a></p>\n" + "\t\t\t\t\t\t</article>";
                     }
                     var backToHomePageHTML = "<a href=\"" + homePageUrl + "\">Back to albums.</a>";
-                    body = body.toString().replace(/\{title\}/g, renderedTitle).replace(/\{comment1\}/g, comment1).replace(/\{comment2\}/g, comment2).replace(/\{backToHomePage\}/g, backToHomePageHTML).replace(/\{pictures\}/g, picturesHTML);
+                    body = body.toString().replace(/\{title\}/g, renderedTitle).replace(/\{comment1\}/g, comment1).replace(/\{comment2\}/g, comment2).replace(/\{backToHomePage\}/g, backToHomePageHTML).replace(/\{pictures\}/g, picturesHTML).replace(/\{bucketName\}/g,bucketName).replace(/\{ossRegion\}/g,ossRegion);
                     var tmpFile = '/tmp/' + title + 'index.html';
                     var newKey = webDir + albumSiteDir + title + '/' + webPageName;
                     fs.writeFileSync(tmpFile, body);
@@ -186,8 +196,10 @@ function uploadAlbumSite(title, pictures) {
                             reject('Failed to upload albumSite web html: %j' + title, err);
                         });
                     }));
-                }
-                else if (path.basename(f) !== '.DS_Store') {
+                } else if (path.basename(f) !== '.DS_Store') {
+                    if (path.basename(f) == 'isExpire.js') {
+                        body = body.toString().replace(/\{loginUrl\}/g, loginUrl);
+                    }
                     var fName = path.relative(dir, f).split('/').join('');
                     var tmpFile = '/tmp/' + fName;
                     // console.log('tmpFileName: ', tmpFile);
@@ -223,13 +235,13 @@ function getObjFromOss(startMarker) {
     var res = new Array();
 
     function getFromOssPromise(nextMarker, resolve, reject) {
-        console.log('i',++i);
+        console.log('i', ++i);
         client.list({
             prefix: 'processed/thumbs',
             marker: nextMarker
         }).then(function (response) {
             if (response.isTruncated) {
-                console.log('response isTruncated',response.isTruncated);
+                console.log('response isTruncated', response.isTruncated);
                 res = res.concat(response.objects);
                 getFromOssPromise(response.nextMarker, resolve, reject)
             } else {
@@ -237,9 +249,9 @@ function getObjFromOss(startMarker) {
                 console.log('oss list finished');
                 resolve(res);
             }
-        }).catch(function(err){
-            console.log('err',err);
-            reject('oss list err',err);
+        }).catch(function (err) {
+            console.log('err', err);
+            reject('oss list err', err);
         })
     }
     return new Promise(function (resolve, reject) {
@@ -252,8 +264,7 @@ exports.build = function (eventBuf, ctx, callback) {
     var event = JSON.parse(eventBuf);
     var ossEvent = event.events[0];
     // Required by OSS sdk: OSS region is prefixed with "oss-", e.g. "oss-cn-shanghai"
-    var ossRegion = "oss-" + ossEvent.region;
-    var bucketName = ossEvent.oss.bucket.name;
+    
     // Create oss client.
     client = new oss({
         region: ossRegion,
@@ -271,7 +282,7 @@ exports.build = function (eventBuf, ctx, callback) {
     console.log('start to get oss list');
     getObjFromOss('').then(function (res) {
         console.log('start to getAlbums...');
-        console.log('res',res);
+        console.log('res', res);
         var albumsAndPictures = getAlbums(res);
         console.log('albumsAndPictures', albumsAndPictures);
         var array = new Array();

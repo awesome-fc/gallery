@@ -9,9 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fs": "^0.0.1-security",
-    "js-md5": "^0.7.3",
-    "path": "^0.12.7"
+    "js-md5": "^0.7.3"
   },
   "devDependencies": {},
   "description": ""
