@@ -19,8 +19,8 @@ var option = {
 var fileName = '/webCDN/homepageSite/index.html';
 
 function authenticate(otspasswd, passwd) {
-  console.log('authenticate', otspasswd == passwd)
-  return otspasswd == passwd;
+  console.log('authenticate', otspasswd === passwd)
+  return otspasswd === passwd;
 }
 
 function getUrl() {

@@ -80,7 +80,7 @@ function getAlbums(data) {
     var albums = objects.map(folderName);
     // Deduplicate albums and ensure pics have to be in a certain dir
     albums = albums.filter(function (item, pos) {
-        return albums.indexOf(item) == pos && !isPicture(item);
+        return albums.indexOf(item) === pos && !isPicture(item);
     });
     var pictures = albums.map(function (album) {
         return objects.filter(function (object) {
@@ -114,7 +114,7 @@ function uploadHomepageSite(albums, pictures) {
             }
             files.map(function (f, callback) {
                 var body = fs.readFileSync(f);
-                if (path.basename(f) == webPageName) {
+                if (path.basename(f) === webPageName) {
                     var picturesHTML = '';
                     for (var i = 0; i < albums.length; i++) {
                         var albumTitle = albums[i];
@@ -137,7 +137,7 @@ function uploadHomepageSite(albums, pictures) {
                         });
                     }));
                 } else if (path.basename(f) !== '.DS_Store') {
-                    if (path.basename(f) == 'isExpire.js') {
+                    if (path.basename(f) === 'isExpire.js') {
                         body = body.toString().replace(/\{loginCDNUrl\}/g, loginCDNUrl);
                     }
                     var fName = path.relative(dir, f).split("/").join('');
@@ -178,7 +178,7 @@ function uploadAlbumSite(title, pictures) {
             if (err) throw err;
             files.map(function (f, callback) {
                 var body = fs.readFileSync(f);
-                if (path.basename(f) == webPageName) {
+                if (path.basename(f) === webPageName) {
                     // Defaults
                     var renderedTitle = title,
                         comment1 = '';
@@ -209,7 +209,7 @@ function uploadAlbumSite(title, pictures) {
                     }));
                 }
                 else if (path.basename(f) !== '.DS_Store') {
-                    if (path.basename(f) == 'isExpire.js') {
+                    if (path.basename(f) === 'isExpire.js') {
                         body = body.toString().replace(/\{loginCDNUrl\}/g, loginCDNUrl);
                     }
                     var fName = path.relative(dir, f).split('/').join('');

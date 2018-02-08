@@ -44,7 +44,7 @@ module.exports.resize = function (eventBuf, ctx, callback) {
     var ossDeletePattern = new RegExp('Removed');
 
     console.log('suffix: ', suffix);
-    if (!((suffix == 'jpg') || (suffix == 'JPG') || (suffix == 'PNG') || (suffix == 'png') || (suffix == 'jpeg') || (suffix == 'JPEG'))) {
+    if (!((suffix === 'jpg') || (suffix === 'JPG') || (suffix === 'PNG') || (suffix === 'png') || (suffix === 'jpeg') || (suffix === 'JPEG'))) {
         callback(null, 'the event is not an image event');
         return;
     }

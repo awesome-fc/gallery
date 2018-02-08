@@ -48,7 +48,7 @@ function uploadLoginForm() {
             files.map(function (f, callback) {
                 var body = fs.readFileSync(f);
                 if (path.basename(f) !== '.DS_Store') {
-                    if (path.basename(f) == 'index.js') {
+                    if (path.basename(f) === 'index.js') {
                         body = body.toString().replace(/\{logAuthCDNApiUrl\}/g, logAuthCDNApiUrl);
                     }
                     var fName = path.relative(dir, f).split("/").join('');
