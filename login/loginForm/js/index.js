@@ -25,6 +25,7 @@ $('.login').on('submit', function (e) {
     success: function (data) {
       // 密码正确或者错误都会触发 success 回调，正确密码返回的 data 是 { url: '....'}
       // 错误的密码返回的是 {}
+      data = JSON.parse(data)
       if (data.url) {
         // 密码正确
         console.log('valid username or password');

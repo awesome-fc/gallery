@@ -262,7 +262,13 @@ function getObjFromOss(startMarker) {
 exports.build = function (eventBuf, ctx, callback) {
     console.log('Received event:', eventBuf.toString());
     var event = JSON.parse(eventBuf);
-    var ossEvent = event.events[0];
+    if (event.events) {
+        var ossEvent = event.events[0];
+    }else {
+        console.log('event.payload',event.payload);
+        console.log('event.payload[0]',JSON.parse(event.payload))
+        var ossEvent = JSON.parse(event.payload).events[0];
+    }
     // Required by OSS sdk: OSS region is prefixed with "oss-", e.g. "oss-cn-shanghai"
     
     // Create oss client.
