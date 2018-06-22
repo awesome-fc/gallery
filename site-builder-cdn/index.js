@@ -100,7 +100,8 @@ function getUrl(fileName) {
     var sstring = fileName + '-' + timeStamp + '-' + '0-0-' + key;
     var authValue = md5(encodeURI(sstring));
     console.log('authValue',authValue);
-    var url = domainName + fileName + '?auth_key=' + timeStamp + '-0-0-' + authValue;   
+    var url = 'http://'+ domainName + fileName + '?auth_key=' + timeStamp + '-0-0-' + authValue;   
+    console.log('url:',url)
     return url;
 }
 
@@ -119,8 +120,11 @@ function uploadHomepageSite(albums, pictures) {
                     for (var i = 0; i < albums.length; i++) {
                         var albumTitle = albums[i];
                         var linkUrl = getUrl(webDir + albumSiteDir + albums[i] + '/' + webPageName);
+                        console.log('linkUrl'+linkUrl)
                         var imgUrl = getUrl(processedDir + thumbsDir + pictures[i][0]);
+                        console.log('imgUrl'+imgUrl)
                         picturesHTML += "\t\t\t\t\t\t<article class=\"thumb\">\n" + "\t\t\t\t\t\t\t<a href=\"" + linkUrl + "\" class=\"image\"><img src=\"" + imgUrl + "\" alt=\"\" /></a>\n" + "\t\t\t\t\t\t\t<h2>" + albumTitle + "</h2>\n" + "\t\t\t\t\t\t</article>\n";
+                        console.log('picturesHTML'+picturesHTML)
                     }
                     body = body.toString().replace(/\{title\}/g, 'Photo Gallery Based On Function Compute').replace(/\{pictures\}/g, picturesHTML).replace(/\{bucketName\}/g,bucketName).replace(/\{ossRegion\}/g,ossRegion);
                     var tmpFile = '/tmp/homepageSiteIndex.html';
@@ -274,7 +278,15 @@ function getObjFromOss(startMarker) {
 exports.build = function (eventBuf, ctx, callback) {
     console.log('Received event:', eventBuf.toString());
     var event = JSON.parse(eventBuf);
-    var ossEvent = event.events[0];
+    if (event.events) {
+        console.log('herehere')
+        var ossEvent = event.events[0];
+    }else {
+        console.log('event.payload',event.payload);
+        console.log('event.payload[0]',JSON.parse(event.payload))
+        var ossEvent = JSON.parse(event.payload).events[0];
+    }
+
     // Create oss client.
     client = new oss({
         region: ossRegion,
